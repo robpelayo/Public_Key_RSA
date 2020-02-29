@@ -11,7 +11,7 @@ def power(x, y, n):
     res = 1
     x = x % n
 
-    while y> 0:
+    while y > 0:
         if y & 1:
             res = (res * x) % n
 
@@ -23,7 +23,7 @@ def power(x, y, n):
 # pseudocode from miller-rabin wikipedia
 def miller_rabin(n):
     # Number of iterations
-    k = 30
+    k = 40
     # d * 2^r = n-1
     d = n - 1
     r = 0
@@ -67,18 +67,59 @@ def random_big_num():
 
 
 def generate_safe_prime():
-    q = 0
     while True:
         q = random_big_num()
+        # print("created q:", q)
         while q % 12 != 5:
             q = random_big_num()
-            # print(q)
-        # print("Testing if prime")
+            # print("created q:", q)
         if test_prime(q):
-            # print("We found our prime")
+            # print(q, "was prime. Trying 2 * q + 1")
             p = 2 * q + 1
             if test_prime(p):
+                # print(p, "was prime. Returning safe number.")
                 return p
+
+
+def read_in_encryption():
+    ptextfile = open("ptext.txt", 'r')
+    message = ptextfile.read()
+    ptextfile.close()
+    pubkeyfile = open("pubkey.txt")
+    key = pubkeyfile.read()
+    pubkeyfile.close()
+    data = key.split()
+    return message, int(data[0]), int(data[1]), int(data[2])
+
+
+def read_in_decryption():
+    ciphertextfile = open("ctext.txt", 'r')
+    ciphertext = ciphertextfile.read()
+    ciphertextfile.close()
+    cipher = ciphertext.split()
+    privatekeyfile = open("prikey.txt", 'r')
+    d = privatekeyfile.read()
+    privatekeyfile.close()
+    d_data = d.split()
+    pubkeyfile = open("pubkey.txt")
+    key = pubkeyfile.read()
+    pubkeyfile.close()
+    data = key.split()
+    return cipher, int(d_data[2]), int(data[0])
+
+
+def get_c1_encrypt(g,p):
+    return power(g, random.randint(0, p-1), p)
+
+
+def get_c2_encrpyt(e, m, p):
+    # return power(power(e, random.randint(0, p-1), p) * m, 1, p)
+    return (power(pow(e, random.randint(0, p-1))* m, 1, p))
+    # return power(e * m, random.randint(0, p-1), p)
+
+
+def hex_to_string(words):
+    return bytes.fromhex(words).decode('utf-8', "ignore")
 
 
 def prompt():
@@ -99,18 +140,51 @@ def main():
         seed_num = int(input("Input a number to seed the random number generator: "))
         random.seed(seed_num)
         p = generate_safe_prime()
+        d = random.randint(LOWER_LIMIT, UPPER_LIMIT)
         g = 2
-        e = 12
+        e = power(g, d, p)
         pubkeyfile = open("pubkey.txt", 'w')
         pubkeyfile.write(str(p) + " " +  str(g) + " " + str(e))
         pubkeyfile.close()
+        privatekeyfile = open("prikey.txt", 'w')
+        privatekeyfile.write(str(p) + " " + str(g) + " " + str(d))
+        privatekeyfile.close()
         print(p)
     elif selection == 2:
-        print("encryption")
-    elif selection == 2:
-        print("encryption")
+        message, p, g, e = read_in_encryption()
+        print(message)
+        hex_message = message.encode('utf-8').hex()
+        print(hex_message)
+        print(hex_to_string(hex_message))
+        words = []
+        for i in range(0, len(hex_message), 8):
+            words.append(int(hex_message[i:i+8], 16))
+        cipher = ''
+        for i in range(0, len(words)):
+            c1 = get_c1_encrypt(g, p)
+            c2 = get_c2_encrpyt(e, words[i], p)
+            cipher += str(c1) + " " + str(c2) + '\n'
+        ciphertextfile = open("ctext.txt", 'w')
+        ciphertextfile.write(cipher)
+        ciphertextfile.close()
+        print(cipher)
+    elif selection == 3:
+        # DECRYPTION WORKS
+        cipher, d, p = read_in_decryption()
+        print(d)
+        message = ''
+        for i in range(0, len(cipher), 2):
+            message += hex((power(int(cipher[i]), (p-1) - d, p) * (int(cipher[i+1]) % p)) % p)[2:]
+        print(message)
+        # print(message[83])
+        print(hex_to_string(message))
+        dtextfile = open("dtext.txt", 'w')
+        dtextfile.write(hex_to_string(message))
+        dtextfile.close()
+
     else:
         print("Invalid selection. Please enter only 1-3.")
 
 
 main()
+# print(generate_safe_prime())

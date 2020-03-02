@@ -2,9 +2,11 @@
 
 import random
 
-UPPER_LIMIT = int(4294967295)
-LOWER_LIMIT = int(2147483648)
+# UPPER_LIMIT = int(4294967295)
+# LOWER_LIMIT = int(2147483648)
 
+UPPER_LIMIT = int(2147483647)
+LOWER_LIMIT = int(1073741824)
 
 # Power function at the bit level from geeksforgeeks.org
 def power(x, y, n):
@@ -69,15 +71,11 @@ def random_big_num():
 def generate_safe_prime():
     while True:
         q = random_big_num()
-        # print("created q:", q)
         while q % 12 != 5:
             q = random_big_num()
-            # print("created q:", q)
         if test_prime(q):
-            # print(q, "was prime. Trying 2 * q + 1")
             p = 2 * q + 1
             if test_prime(p):
-                # print(p, "was prime. Returning safe number.")
                 return p
 
 
@@ -108,15 +106,12 @@ def read_in_decryption():
     return cipher, int(d_data[2]), int(data[0])
 
 
-def get_c1_encrypt(g,p):
-    return power(g, random.randint(0, p-1), p)
+def get_c1_encrypt(g, p, k):
+    return pow(g, k, p)
 
 
-def get_c2_encrpyt(e, m, p):
-    # return power(power(e, random.randint(0, p-1), p) * m, 1, p)
-    return (power(pow(e, random.randint(0, p-1))* m, 1, p))
-    # return power(e * m, random.randint(0, p-1), p)
-
+def get_c2_encrpyt(e, m, p, k):
+    return (pow(e, k, p) * pow(m, 1, p)) % p
 
 def hex_to_string(words):
     return bytes.fromhex(words).decode('utf-8', "ignore")
@@ -149,34 +144,27 @@ def main():
         privatekeyfile = open("prikey.txt", 'w')
         privatekeyfile.write(str(p) + " " + str(g) + " " + str(d))
         privatekeyfile.close()
-        print(p)
     elif selection == 2:
         message, p, g, e = read_in_encryption()
-        print(message)
         hex_message = message.encode('utf-8').hex()
-        print(hex_message)
-        print(hex_to_string(hex_message))
         words = []
         for i in range(0, len(hex_message), 8):
             words.append(int(hex_message[i:i+8], 16))
         cipher = ''
         for i in range(0, len(words)):
-            c1 = get_c1_encrypt(g, p)
-            c2 = get_c2_encrpyt(e, words[i], p)
+            k = random.randint(0, p-1)
+            c1 = get_c1_encrypt(g, p, k)
+            c2 = get_c2_encrpyt(e, words[i], p, k)
             cipher += str(c1) + " " + str(c2) + '\n'
         ciphertextfile = open("ctext.txt", 'w')
         ciphertextfile.write(cipher)
         ciphertextfile.close()
         print(cipher)
     elif selection == 3:
-        # DECRYPTION WORKS
         cipher, d, p = read_in_decryption()
-        print(d)
         message = ''
         for i in range(0, len(cipher), 2):
             message += hex((power(int(cipher[i]), (p-1) - d, p) * (int(cipher[i+1]) % p)) % p)[2:]
-        print(message)
-        # print(message[83])
         print(hex_to_string(message))
         dtextfile = open("dtext.txt", 'w')
         dtextfile.write(hex_to_string(message))
@@ -187,4 +175,3 @@ def main():
 
 
 main()
-# print(generate_safe_prime())

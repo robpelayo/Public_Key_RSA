@@ -10,6 +10,8 @@ To run the program, python3 must be installed.
 python3 rsa.py
 ```
 
+Select 1 for key generation, 2 for encryption of the file ptext.txt, or 3 for decyption of the file ctext.txt.
+
 
 # Files included:
 - rsa.py
